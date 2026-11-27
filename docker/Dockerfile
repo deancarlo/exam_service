@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# --- Development stage (VS Code Dev Container + Git/SSH) ---
+# --- Dev stage (VS Code Dev Container + Git/SSH) ---
 FROM base AS dev
 
 ARG USERNAME=vscode
@@ -47,11 +47,14 @@ FROM base AS prod
 RUN groupadd -r django && useradd -r -g django django
 
 COPY --from=builder /wheels /wheels
-RUN pip install --no-index --find-links=/wheels -r requirements.txt && rm -rf /wheels
+RUN pip install --no-index --find-links=/wheels /wheels/*.whl && rm -rf /wheels
 
 COPY --chown=django:django . /workspace
 COPY --chown=django:django docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+
+RUN mkdir -p /workspace/staticfiles /workspace/media \
+    && chown -R django:django /workspace/staticfiles /workspace/media \
+    && chmod +x /entrypoint.sh
 
 USER django
 EXPOSE 8000
